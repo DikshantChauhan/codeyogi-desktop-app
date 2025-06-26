@@ -1,5 +1,6 @@
 import 'package:desktop_app/components/dashboard_content_container.dart';
 import 'package:desktop_app/components/sidebar.dart';
+import 'package:desktop_app/components/user_icon_dropdown.dart';
 import 'package:flutter/material.dart';
 
 class DashboardPage extends StatelessWidget {
@@ -25,7 +26,14 @@ class DashboardPage extends StatelessWidget {
             child: const Sidebar(),
           ),
           // Main Content: Takes remaining space
-          const Expanded(child: DashboardContentContainer()),
+          Expanded(
+            child: Stack(
+              children: [
+                const DashboardContentContainer(),
+                const UserIconDropdown(),
+              ],
+            ),
+          ),
         ],
       ),
     );

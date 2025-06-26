@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// Ensure this path correctly points to where internetNotifierProvider and InternetState are defined/exported
 import 'package:desktop_app/providers/connectivity_provider.dart';
 
 class ConnectivityStatusOverlay extends ConsumerStatefulWidget {
@@ -16,11 +15,20 @@ class _ConnectivityStatusOverlayState
     extends ConsumerState<ConnectivityStatusOverlay> {
   Timer? _onlineBannerTimer;
   bool _showOnlineBanner = false;
+  bool _offlineBannerDismissed = false;
 
   @override
   void dispose() {
     _onlineBannerTimer?.cancel();
     super.dispose();
+  }
+
+  void _dismissBanner() {
+    _onlineBannerTimer?.cancel();
+    setState(() {
+      _showOnlineBanner = false;
+      _offlineBannerDismissed = true;
+    });
   }
 
   @override
@@ -63,6 +71,7 @@ class _ConnectivityStatusOverlayState
       if (!wasEffectivelyConnected && isNowConnected && previousState != null) {
         setState(() {
           _showOnlineBanner = true;
+          _offlineBannerDismissed = false; // Reset offline banner dismissed state when coming back online
         });
         _onlineBannerTimer?.cancel(); // Cancel any existing timer
         _onlineBannerTimer = Timer(const Duration(seconds: 5), () {
@@ -82,6 +91,12 @@ class _ConnectivityStatusOverlayState
           // Only update state if it needs to change
           setState(() {
             _showOnlineBanner = false;
+            _offlineBannerDismissed = false; // Reset offline banner dismissed state when going offline
+          });
+        } else {
+          // If we're going offline and the online banner wasn't showing, still reset the offline banner dismissed state
+          setState(() {
+            _offlineBannerDismissed = false;
           });
         }
       }
@@ -101,7 +116,7 @@ class _ConnectivityStatusOverlayState
     Color? bannerColor;
     String? bannerText;
 
-    if (isActuallyOffline) {
+    if (isActuallyOffline && !_offlineBannerDismissed) {
       bannerColor = Theme.of(context).colorScheme.error.withOpacity(0.95);
       bannerText = 'You are offline. Some features may be unavailable.';
     } else if (_showOnlineBanner && isActuallyOnline) {
@@ -119,12 +134,29 @@ class _ConnectivityStatusOverlayState
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-        child: Text(
-          bannerText,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onPrimary,
-          ),
-          textAlign: TextAlign.center,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                bannerText,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            GestureDetector(
+              onTap: _dismissBanner,
+              child: Container(
+                padding: const EdgeInsets.all(4.0),
+                child: Icon(
+                  Icons.close,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  size: 20.0,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
